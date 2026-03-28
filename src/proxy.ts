@@ -5,97 +5,42 @@ import type { NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // ── Always public ──
-  if (
-    pathname === '/' ||
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon')
-  ) {
+  if (pathname === '/' || pathname.startsWith('/api/')) {
     return NextResponse.next()
   }
 
-  // ── Build session-aware Supabase client ──
-  let supabaseResponse = NextResponse.next({ request })
-
+  const response = NextResponse.next()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
+        get: (n) => request.cookies.get(n)?.value,
+        set: (n, v, o) => response.cookies.set(n, v, o),
+        remove: (n, o) => response.cookies.set(n, '', o),
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  function redirect(to: string) {
-    const url = request.nextUrl.clone()
-    url.pathname = to
-    return NextResponse.redirect(url)
+  if (!user) return NextResponse.redirect(new URL('/', request.url))
+
+  if (pathname.startsWith('/dashboard')) {
+    if (user.email !== 'broker@glrealty.com') return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Unauthenticated → login
-  if (!user) return redirect('/')
-
-  const email       = user.email ?? ''
-  const brokerEmail = process.env.NEXT_PUBLIC_BROKER_EMAIL ?? 'broker@glrealty.com'
-  const adminEmail  = process.env.NEXT_PUBLIC_ADMIN_EMAIL  ?? 'admin@glrealty.com'
-
-  // ── /glradmin → admin only ──
   if (pathname.startsWith('/glradmin')) {
-    if (email === adminEmail) return supabaseResponse
-    return redirect('/')
+    if (user.email !== 'admin@glrealty.com') return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // ── CRM routes → broker only ──
-  const crmRoutes = [
-    '/dashboard', '/pipeline', '/agents', '/leads',
-    '/tasks', '/messages', '/documents',
-  ]
-  if (crmRoutes.some(r => pathname.startsWith(r))) {
-    if (email === brokerEmail) return supabaseResponse
-    return redirect('/')
-  }
-
-  // ── /agent-dashboard → must exist in agents table ──
   if (pathname.startsWith('/agent-dashboard')) {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agents?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
-        {
-          headers: {
-            apikey:        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-          },
-          cache: 'no-store',
-        }
-      )
-      const rows: unknown[] = await res.json()
-      if (!Array.isArray(rows) || rows.length === 0) return redirect('/')
-    } catch {
-      return redirect('/')
+    if (user.email === 'broker@glrealty.com' || user.email === 'admin@glrealty.com') {
+      return NextResponse.redirect(new URL('/', request.url))
     }
-    return supabaseResponse
   }
 
-  return redirect('/')
+  return response
 }
 
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-}
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] }
