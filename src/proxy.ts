@@ -9,15 +9,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const response = NextResponse.next()
+  // Must create response first, then pass request into it so cookies flow correctly
+  let response = NextResponse.next({ request })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (n) => request.cookies.get(n)?.value,
-        set: (n, v, o) => response.cookies.set(n, v, o),
-        remove: (n, o) => response.cookies.set(n, '', o),
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
       },
     }
   )
