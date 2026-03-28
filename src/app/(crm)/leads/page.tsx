@@ -89,7 +89,7 @@ export default function LeadsPage() {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-glr-gray-dark">Leads</h1>
+            <h1 className="font-heading text-2xl font-bold text-glr-gray-dark">Leads</h1>
             <p className="text-glr-gray text-sm mt-1">Track and manage your lead pipeline</p>
           </div>
           <button

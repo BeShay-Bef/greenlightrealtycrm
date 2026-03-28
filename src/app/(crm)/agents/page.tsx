@@ -86,7 +86,7 @@ export default function AgentsPage() {
       <div className="p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-glr-gray-dark">Agents</h1>
+            <h1 className="font-heading text-2xl font-bold text-glr-gray-dark">Agents</h1>
             <p className="text-glr-gray text-sm mt-1">Manage your agent roster and access</p>
           </div>
           <button

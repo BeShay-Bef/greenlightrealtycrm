@@ -88,7 +88,7 @@ export default function Sidebar() {
               )}
             >
               {link.icon}
-              {link.label}
+              <span className="font-heading">{link.label}</span>
             </Link>
           )
         })}

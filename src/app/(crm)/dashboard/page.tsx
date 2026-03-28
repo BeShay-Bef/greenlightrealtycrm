@@ -46,7 +46,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-glr-gray-dark">Dashboard</h1>
+          <h1 className="font-heading text-2xl font-bold text-glr-gray-dark">Dashboard</h1>
           <p className="text-glr-gray text-sm mt-1">Welcome back — here&apos;s your team overview</p>
         </div>
 

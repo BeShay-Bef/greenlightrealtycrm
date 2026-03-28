@@ -89,7 +89,7 @@ export default function MessagesPage() {
         {/* Left panel — agent threads */}
         <div className="w-72 bg-white border-r border-gray-100 flex flex-col">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-glr-gray-dark">Conversations</h2>
+            <h2 className="font-heading font-semibold text-glr-gray-dark">Conversations</h2>
             <p className="text-xs text-glr-gray mt-0.5">Active agents</p>
           </div>
 

@@ -120,7 +120,7 @@ export default function DocumentsPage() {
     <>
       <div className="p-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-glr-gray-dark">Documents</h1>
+          <h1 className="font-heading text-2xl font-bold text-glr-gray-dark">Documents</h1>
           <p className="text-glr-gray text-sm mt-1">Upload and scan real estate documents with AI</p>
         </div>
 

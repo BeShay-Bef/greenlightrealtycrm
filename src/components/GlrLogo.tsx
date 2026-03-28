@@ -54,7 +54,7 @@ export default function GlrLogo({
       {showText && (
         <div className="flex flex-col leading-none">
           <span
-            className="font-bold tracking-widest text-xs"
+            className="font-heading font-bold tracking-widest text-xs"
             style={{ color: textColor, letterSpacing: '0.15em' }}
           >
             GREEN LIGHT
