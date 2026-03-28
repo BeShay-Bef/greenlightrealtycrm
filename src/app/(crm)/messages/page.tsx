@@ -85,7 +85,7 @@ export default function MessagesPage() {
 
   return (
     <>
-      <div className="flex h-screen">
+      <div className="flex h-full" style={{ height: 'calc(100vh)' }}>
         {/* Left panel — agent threads */}
         <div className="w-72 bg-white border-r border-gray-100 flex flex-col">
           <div className="px-5 py-4 border-b border-gray-100">

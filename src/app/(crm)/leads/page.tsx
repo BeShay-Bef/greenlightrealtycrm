@@ -79,7 +79,7 @@ export default function LeadsPage() {
       search === '' ||
       l.name.toLowerCase().includes(search.toLowerCase()) ||
       l.email.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone.includes(search)
+      (l.phone?.includes(search) ?? false)
     const matchesStatus = statusFilter === 'All' || l.status === statusFilter
     return matchesSearch && matchesStatus
   })
