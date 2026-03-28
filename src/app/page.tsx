@@ -7,151 +7,126 @@ import { createClient } from '@/lib/supabase'
 
 type AgentTab = 'signin' | 'signup'
 
+// ── Shared dark card style ──
+const CARD: React.CSSProperties = {
+  background: '#1a1b1d',
+  border: '1px solid rgba(141,198,63,0.2)',
+}
+const DARK_INPUT: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.1)',
+}
+
+const darkInput =
+  'w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-glr-green transition-all'
+
+const lbl = 'block text-xs font-heading font-bold text-white/40 uppercase tracking-wider mb-1.5'
+
 export default function HomePage() {
   const router = useRouter()
 
-  // ── Broker state ──
-  const [brokerEmail, setBrokerEmail] = useState('')
-  const [brokerPassword, setBrokerPassword] = useState('')
-  const [brokerError, setBrokerError] = useState('')
-  const [brokerLoading, setBrokerLoading] = useState(false)
+  // ── Broker ──
+  const [bEmail, setBEmail] = useState('')
+  const [bPass, setBPass]   = useState('')
+  const [bErr, setBErr]     = useState('')
+  const [bLoad, setBLoad]   = useState(false)
 
-  // ── Agent state ──
-  const [agentTab, setAgentTab] = useState<AgentTab>('signin')
-  const [agentName, setAgentName] = useState('')
-  const [agentEmail, setAgentEmail] = useState('')
-  const [agentPassword, setAgentPassword] = useState('')
-  const [agentError, setAgentError] = useState('')
-  const [agentLoading, setAgentLoading] = useState(false)
-  const [agentSuccess, setAgentSuccess] = useState('')
+  // ── Agent ──
+  const [tab, setTab]             = useState<AgentTab>('signin')
+  const [aName, setAName]         = useState('')
+  const [aPhone, setAPhone]       = useState('')
+  const [aEmail, setAEmail]       = useState('')
+  const [aPass, setAPass]         = useState('')
+  const [aErr, setAErr]           = useState('')
+  const [aLoad, setALoad]         = useState(false)
+  const [aSuccess, setASuccess]   = useState('')
 
-  // ── Admin dot state ──
-  const [adminVisible, setAdminVisible] = useState(false)
-  const [adminPasscode, setAdminPasscode] = useState('')
-  const [adminError, setAdminError] = useState('')
-  const [adminChecking, setAdminChecking] = useState(false)
+  // ── Admin modal ──
+  const [adminOpen, setAdminOpen]   = useState(false)
+  const [adEmail, setAdEmail]       = useState('')
+  const [adPass, setAdPass]         = useState('')
+  const [adErr, setAdErr]           = useState('')
+  const [adLoad, setAdLoad]         = useState(false)
 
-  async function handleBrokerLogin(e: React.FormEvent) {
+  function closeAdmin() {
+    setAdminOpen(false)
+    setAdEmail('')
+    setAdPass('')
+    setAdErr('')
+  }
+
+  // ── Handlers ──
+  async function handleBroker(e: React.FormEvent) {
     e.preventDefault()
-    setBrokerError('')
-    setBrokerLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: brokerEmail,
-      password: brokerPassword,
-    })
-    if (error) {
-      setBrokerError(error.message)
-      setBrokerLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
-    }
+    setBErr('')
+    setBLoad(true)
+    const sb = createClient()
+    const { error } = await sb.auth.signInWithPassword({ email: bEmail, password: bPass })
+    if (error) { setBErr(error.message); setBLoad(false) }
+    else { router.push('/dashboard'); router.refresh() }
   }
 
   async function handleAgentSignIn(e: React.FormEvent) {
     e.preventDefault()
-    setAgentError('')
-    setAgentLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: agentEmail,
-      password: agentPassword,
-    })
-    if (error) {
-      setAgentError(error.message)
-      setAgentLoading(false)
-    } else {
-      router.push('/agent-dashboard')
-      router.refresh()
-    }
+    setAErr('')
+    setALoad(true)
+    const sb = createClient()
+    const { error } = await sb.auth.signInWithPassword({ email: aEmail, password: aPass })
+    if (error) { setAErr(error.message); setALoad(false) }
+    else { router.push('/agent-dashboard'); router.refresh() }
   }
 
   async function handleAgentSignUp(e: React.FormEvent) {
     e.preventDefault()
-    setAgentError('')
-    setAgentLoading(true)
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signUp({
-      email: agentEmail,
-      password: agentPassword,
-    })
-    if (error) {
-      setAgentError(error.message)
-      setAgentLoading(false)
-      return
-    }
+    setAErr('')
+    setALoad(true)
+    const sb = createClient()
+    const { data, error } = await sb.auth.signUp({ email: aEmail, password: aPass })
+    if (error) { setAErr(error.message); setALoad(false); return }
     if (data.user) {
-      await supabase.from('agents').insert({
-        name: agentName,
-        email: agentEmail,
-        phone: '',
-        active: false,
-        access_leads: false,
-        access_docs: false,
-        access_msgs: false,
+      await sb.from('agents').insert({
+        name: aName, email: aEmail, phone: aPhone,
+        active: false, access_leads: false, access_docs: false, access_msgs: false,
       })
     }
-    setAgentLoading(false)
-    setAgentSuccess('Account created! Check your email to confirm, then sign in.')
-    setAgentTab('signin')
-    setAgentEmail('')
-    setAgentPassword('')
-    setAgentName('')
+    setALoad(false)
+    setASuccess('Account created! Check your email to confirm, then sign in.')
+    setTab('signin')
+    setAName(''); setAPhone(''); setAEmail(''); setAPass('')
   }
 
-  async function handleAdminPasscode(e: React.FormEvent) {
+  async function handleAdmin(e: React.FormEvent) {
     e.preventDefault()
-    setAdminError('')
-    setAdminChecking(true)
-    try {
-      const res = await fetch('/api/admin/check-passcode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: adminPasscode }),
-      })
-      if (res.ok) {
-        router.push('/glradmin')
-      } else {
-        setAdminError('Incorrect passcode')
-        setAdminPasscode('')
-      }
-    } catch {
-      setAdminError('Request failed')
+    setAdErr('')
+    setAdLoad(true)
+    const sb = createClient()
+    const { error } = await sb.auth.signInWithPassword({ email: adEmail, password: adPass })
+    if (error) {
+      setAdErr(error.message)
+      setAdLoad(false)
+    } else {
+      // Proxy enforces ADMIN_EMAIL → if wrong account, proxy redirects away from /glradmin
+      router.push('/glradmin')
+      router.refresh()
     }
-    setAdminChecking(false)
   }
-
-  const darkInputClass =
-    'w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-glr-green transition'
-  const darkInputStyle = {
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.1)',
-  }
-  const lightInputClass =
-    'w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 text-glr-gray-dark placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-glr-green focus:border-transparent transition'
 
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(160deg, #1e1f22 0%, #2d2e30 55%, #252627 100%)',
-      }}
+      style={{ background: '#2d2e30' }}
     >
       {/* Top green accent bar */}
       <div className="h-1 w-full bg-glr-green flex-shrink-0" />
 
-      {/* Subtle background texture circles */}
+      {/* Subtle radial glow */}
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(141,198,63,0.04) 0%, transparent 70%)',
-        }}
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(141,198,63,0.07) 0%, transparent 70%)' }}
       />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+      {/* ── Main ── */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-12">
 
         {/* Logo + tagline */}
         <div className="text-center mb-10 animate-fade-up">
@@ -161,279 +136,226 @@ export default function HomePage() {
           <p className="font-heading font-bold text-glr-green tracking-[0.3em] uppercase text-sm mb-1">
             Forward. Moving.
           </p>
-          <p className="text-white/30 text-xs tracking-widest uppercase">
+          <p className="text-white/25 text-xs tracking-widest uppercase font-heading">
             Real Estate Management Portal
           </p>
         </div>
 
-        {/* Two-card layout */}
+        {/* Two dark cards */}
         <div
-          className="flex flex-col md:flex-row gap-5 w-full max-w-2xl animate-fade-up"
+          className="flex flex-col md:flex-row gap-4 w-full max-w-2xl animate-fade-up"
           style={{ animationDelay: '100ms' }}
         >
 
-          {/* ════ BROKER PORTAL — dark card ════ */}
-          <div
-            className="flex-1 rounded-2xl overflow-hidden shadow-2xl"
-            style={{
-              background: 'rgba(255,255,255,0.045)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            {/* Card header */}
-            <div
-              className="px-7 pt-6 pb-4 border-b"
-              style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-            >
+          {/* ══ BROKER PORTAL ══ */}
+          <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl" style={CARD}>
+            <div className="px-7 pt-6 pb-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2 mb-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-glr-green" />
                 <p className="text-xs font-heading font-bold text-glr-green uppercase tracking-widest">
                   Broker Portal
                 </p>
               </div>
-              <p className="text-white/35 text-xs pl-3.5">Full management access</p>
+              <p className="text-white/30 text-xs pl-3.5">Full management access</p>
             </div>
 
-            <form onSubmit={handleBrokerLogin} className="px-7 py-6 space-y-4">
-              {brokerError && (
+            <form onSubmit={handleBroker} className="px-7 py-6 space-y-4">
+              {bErr && (
                 <div className="bg-red-900/30 border border-red-500/25 text-red-300 text-xs px-3 py-2.5 rounded-lg">
-                  {brokerError}
+                  {bErr}
                 </div>
               )}
-
               <div>
-                <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={brokerEmail}
-                  onChange={(e) => setBrokerEmail(e.target.value)}
+                <label className={lbl}>Email</label>
+                <input type="email" required autoComplete="email"
+                  value={bEmail} onChange={e => setBEmail(e.target.value)}
                   placeholder="broker@glrealty.com"
-                  className={darkInputClass}
-                  style={darkInputStyle}
-                />
+                  className={darkInput} style={DARK_INPUT} />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-white/40 uppercase tracking-wider mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={brokerPassword}
-                  onChange={(e) => setBrokerPassword(e.target.value)}
+                <label className={lbl}>Password</label>
+                <input type="password" required autoComplete="current-password"
+                  value={bPass} onChange={e => setBPass(e.target.value)}
                   placeholder="••••••••"
-                  className={darkInputClass}
-                  style={darkInputStyle}
-                />
+                  className={darkInput} style={DARK_INPUT} />
               </div>
-
               <button
-                type="submit"
-                disabled={brokerLoading}
+                type="submit" disabled={bLoad}
                 className="w-full font-heading font-bold py-3 rounded-xl text-sm transition-all disabled:opacity-50 hover:brightness-110 mt-1"
                 style={{ background: '#8DC63F', color: '#2d2e30' }}
               >
-                {brokerLoading ? 'Signing in…' : 'Sign In →'}
+                {bLoad ? 'Signing in…' : 'Sign In →'}
               </button>
             </form>
           </div>
 
-          {/* ════ AGENT PORTAL — light card ════ */}
-          <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl bg-white">
-            {/* Card header */}
-            <div className="px-7 pt-6 pb-4 border-b border-gray-100">
+          {/* ══ AGENT PORTAL ══ */}
+          <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl" style={CARD}>
+            <div className="px-7 pt-6 pb-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2 mb-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-glr-gray" />
-                <p className="text-xs font-heading font-bold text-glr-gray-dark uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                <p className="text-xs font-heading font-bold text-white/70 uppercase tracking-widest">
                   Agent Portal
                 </p>
               </div>
-              <p className="text-glr-gray text-xs pl-3.5">Agent access & registration</p>
+              <p className="text-white/30 text-xs pl-3.5">Agent access & registration</p>
             </div>
 
-            {/* Sign In / Sign Up tabs */}
+            {/* Tabs */}
             <div className="px-7 pt-5">
-              <div className="flex gap-1 bg-glr-gray-light p-1 rounded-xl">
-                {(['signin', 'signup'] as AgentTab[]).map((tab) => (
+              <div className="flex border-b border-white/10">
+                {(['signin', 'signup'] as AgentTab[]).map(t => (
                   <button
-                    key={tab}
-                    type="button"
-                    onClick={() => {
-                      setAgentTab(tab)
-                      setAgentError('')
-                      setAgentSuccess('')
-                    }}
-                    className={`flex-1 text-xs font-heading font-bold py-2 rounded-lg transition-all ${
-                      agentTab === tab
-                        ? 'bg-white text-glr-gray-dark shadow-sm'
-                        : 'text-glr-gray hover:text-glr-gray-dark'
+                    key={t} type="button"
+                    onClick={() => { setTab(t); setAErr(''); setASuccess('') }}
+                    className={`flex-1 pb-2.5 text-xs font-heading font-bold uppercase tracking-wider transition-all border-b-2 -mb-px ${
+                      tab === t
+                        ? 'text-glr-green border-glr-green'
+                        : 'text-white/35 border-transparent hover:text-white/60'
                     }`}
                   >
-                    {tab === 'signin' ? 'Sign In' : 'Sign Up'}
+                    {t === 'signin' ? 'Sign In' : 'Sign Up'}
                   </button>
                 ))}
               </div>
             </div>
 
             <form
-              key={agentTab}
-              onSubmit={agentTab === 'signin' ? handleAgentSignIn : handleAgentSignUp}
+              key={tab}
+              onSubmit={tab === 'signin' ? handleAgentSignIn : handleAgentSignUp}
               className="px-7 py-5 space-y-4"
             >
-              {agentError && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2.5 rounded-lg">
-                  {agentError}
+              {aErr && (
+                <div className="bg-red-900/30 border border-red-500/25 text-red-300 text-xs px-3 py-2.5 rounded-lg">
+                  {aErr}
                 </div>
               )}
-              {agentSuccess && (
-                <div className="bg-glr-green-light border border-glr-green-mid text-glr-green-dark text-xs px-3 py-2.5 rounded-lg">
-                  {agentSuccess}
+              {aSuccess && (
+                <div className="bg-glr-green/15 border border-glr-green/30 text-glr-green text-xs px-3 py-2.5 rounded-lg">
+                  {aSuccess}
                 </div>
               )}
 
-              {agentTab === 'signup' && (
-                <div>
-                  <label className="block text-xs font-bold text-glr-gray uppercase tracking-wider mb-1.5">
-                    Full Name
-                  </label>
-                  <input
-                    required
-                    placeholder="Jane Smith"
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    className={lightInputClass}
-                  />
-                </div>
+              {tab === 'signup' && (
+                <>
+                  <div>
+                    <label className={lbl}>Full Name</label>
+                    <input required placeholder="Jane Smith"
+                      value={aName} onChange={e => setAName(e.target.value)}
+                      className={darkInput} style={DARK_INPUT} />
+                  </div>
+                  <div>
+                    <label className={lbl}>Phone</label>
+                    <input placeholder="+1 (555) 000-0000"
+                      value={aPhone} onChange={e => setAPhone(e.target.value)}
+                      className={darkInput} style={DARK_INPUT} />
+                  </div>
+                </>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-glr-gray uppercase tracking-wider mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="agent@example.com"
-                  value={agentEmail}
-                  onChange={(e) => setAgentEmail(e.target.value)}
-                  className={lightInputClass}
-                />
+                <label className={lbl}>Email</label>
+                <input type="email" required placeholder="agent@example.com"
+                  value={aEmail} onChange={e => setAEmail(e.target.value)}
+                  className={darkInput} style={DARK_INPUT} />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-glr-gray uppercase tracking-wider mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="••••••••"
-                  value={agentPassword}
-                  onChange={(e) => setAgentPassword(e.target.value)}
-                  className={lightInputClass}
-                />
+                <label className={lbl}>Password</label>
+                <input type="password" required minLength={6} placeholder="••••••••"
+                  value={aPass} onChange={e => setAPass(e.target.value)}
+                  className={darkInput} style={DARK_INPUT} />
               </div>
 
               <button
-                type="submit"
-                disabled={agentLoading}
-                className="w-full font-heading font-bold py-3 rounded-xl text-sm text-white transition-all disabled:opacity-50 hover:brightness-110 mt-1"
-                style={{ background: '#2d2e30' }}
+                type="submit" disabled={aLoad}
+                className="w-full font-heading font-bold py-3 rounded-xl text-sm text-white/90 transition-all disabled:opacity-50 hover:brightness-125 mt-1"
+                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)' }}
               >
-                {agentLoading
-                  ? agentTab === 'signin'
-                    ? 'Signing in…'
-                    : 'Creating account…'
-                  : agentTab === 'signin'
-                  ? 'Sign In →'
-                  : 'Create Account →'}
+                {aLoad
+                  ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
+                  : (tab === 'signin' ? 'Sign In →' : 'Create Account →')}
               </button>
             </form>
           </div>
         </div>
 
         {/* Footer */}
-        <p
-          className="text-white/20 text-xs mt-8 tracking-widest uppercase animate-fade-up"
-          style={{ animationDelay: '200ms' }}
-        >
+        <p className="text-white/15 text-xs mt-8 tracking-widest uppercase font-heading animate-fade-up" style={{ animationDelay: '200ms' }}>
           GreenLight Realty &copy; {new Date().getFullYear()}
         </p>
       </div>
 
-      {/* ════ Hidden admin dot (bottom-right) ════ */}
-      <div className="fixed bottom-4 right-4 z-50">
-        {!adminVisible ? (
-          <button
-            onClick={() => setAdminVisible(true)}
-            className="w-2.5 h-2.5 rounded-full bg-white/10 hover:bg-white/30 transition-colors duration-300"
-            aria-hidden="true"
-          />
-        ) : (
-          <form
-            onSubmit={handleAdminPasscode}
-            className="flex flex-col gap-2 rounded-xl p-3 shadow-2xl animate-fade-in"
-            style={{
-              minWidth: '190px',
-              background: 'rgba(30,31,34,0.95)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
+      {/* ══ Hidden admin dot — bottom right ══ */}
+      <button
+        onClick={() => setAdminOpen(true)}
+        className="fixed bottom-4 right-4 z-40 w-[6px] h-[6px] rounded-full transition-all duration-300"
+        style={{ background: 'rgba(255,255,255,0.25)' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(141,198,63,0.6)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
+        aria-hidden="true"
+      />
+
+      {/* ══ Admin modal overlay ══ */}
+      {adminOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+          onClick={e => { if (e.target === e.currentTarget) closeAdmin() }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl shadow-2xl animate-fade-in"
+            style={{ background: '#1a1b1d', border: '1px solid rgba(141,198,63,0.25)' }}
           >
-            {adminError && (
-              <p className="text-red-400 text-xs px-1">{adminError}</p>
-            )}
-            <input
-              type="password"
-              autoFocus
-              placeholder="Admin passcode"
-              value={adminPasscode}
-              onChange={(e) => setAdminPasscode(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setAdminVisible(false)
-                  setAdminPasscode('')
-                  setAdminError('')
-                }
-              }}
-              className="px-3 py-2 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-glr-green"
-              style={{
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            />
-            <div className="flex gap-1.5">
-              <button
-                type="submit"
-                disabled={adminChecking}
-                className="flex-1 text-xs font-heading font-bold py-1.5 rounded-lg transition hover:brightness-110 disabled:opacity-50"
-                style={{ background: '#8DC63F', color: '#2d2e30' }}
-              >
-                {adminChecking ? '…' : 'Enter →'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminVisible(false)
-                  setAdminPasscode('')
-                  setAdminError('')
-                }}
-                className="text-xs px-2.5 py-1.5 rounded-lg text-white/40 hover:text-white/70 transition"
-              >
-                ✕
-              </button>
+            {/* Modal header */}
+            <div className="px-7 pt-7 pb-5 text-center border-b border-white/[0.06]">
+              <div className="flex justify-center mb-4">
+                <GlrLogo size={36} color="#8DC63F" textColor="#ffffff" />
+              </div>
+              <h2 className="font-heading font-bold text-white text-lg">Admin Access</h2>
+              <p className="text-white/30 text-xs mt-1">Restricted area</p>
             </div>
-          </form>
-        )}
-      </div>
+
+            <form onSubmit={handleAdmin} className="px-7 py-6 space-y-4">
+              {adErr && (
+                <div className="bg-red-900/30 border border-red-500/25 text-red-300 text-xs px-3 py-2.5 rounded-lg text-center">
+                  {adErr}
+                </div>
+              )}
+              <div>
+                <label className={lbl}>Email</label>
+                <input type="email" required autoFocus
+                  placeholder="admin@glrealty.com"
+                  value={adEmail} onChange={e => setAdEmail(e.target.value)}
+                  className={darkInput} style={DARK_INPUT} />
+              </div>
+              <div>
+                <label className={lbl}>Password</label>
+                <input type="password" required
+                  placeholder="••••••••"
+                  value={adPass} onChange={e => setAdPass(e.target.value)}
+                  onKeyDown={e => e.key === 'Escape' && closeAdmin()}
+                  className={darkInput} style={DARK_INPUT} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit" disabled={adLoad}
+                  className="flex-1 font-heading font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50 hover:brightness-110"
+                  style={{ background: '#8DC63F', color: '#2d2e30' }}
+                >
+                  {adLoad ? 'Signing in…' : 'Sign In →'}
+                </button>
+                <button
+                  type="button" onClick={closeAdmin}
+                  className="px-4 py-2.5 rounded-xl text-sm text-white/35 hover:text-white/60 transition-colors font-heading"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

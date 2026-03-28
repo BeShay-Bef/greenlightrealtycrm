@@ -10,16 +10,16 @@ function adminClient() {
   )
 }
 
-async function assertBroker(): Promise<boolean> {
+async function assertAdmin(): Promise<boolean> {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
-  return user?.email === brokerEmail
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@glrealty.com'
+  return user?.email === adminEmail
 }
 
 // GET — list all auth users
 export async function GET() {
-  if (!(await assertBroker())) {
+  if (!(await assertAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
@@ -40,7 +40,7 @@ export async function GET() {
 
 // POST — create new user
 export async function POST(request: Request) {
-  if (!(await assertBroker())) {
+  if (!(await assertAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 

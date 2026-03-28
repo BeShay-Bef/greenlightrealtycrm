@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Public routes — no auth required
+  // ── Public routes — no auth required ──
   if (
     pathname === '/' ||
     pathname === '/api/sms/webhook' ||
@@ -16,7 +16,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirect legacy /login to /
+  // API routes — skip role enforcement (individual routes guard themselves)
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
+  // Redirect legacy /login → /
   if (pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
@@ -50,7 +55,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Unauthenticated → back to login
+  // ── Unauthenticated → login ──
   if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
@@ -58,26 +63,33 @@ export async function proxy(request: NextRequest) {
   }
 
   const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
-  const isBroker = user.email === brokerEmail
+  const adminEmail  = process.env.ADMIN_EMAIL  ?? 'admin@glrealty.com'
+  const email = user.email ?? ''
 
-  // /glradmin is restricted to the broker only
-  if (pathname.startsWith('/glradmin') && !isBroker) {
+  function redirect(to: string) {
     const url = request.nextUrl.clone()
-    url.pathname = '/agent-dashboard'
+    url.pathname = to
     return NextResponse.redirect(url)
   }
 
-  // Non-broker users: redirect all broker routes → /agent-dashboard
-  if (
-    !isBroker &&
-    !pathname.startsWith('/agent-dashboard') &&
-    !pathname.startsWith('/api')
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/agent-dashboard'
-    return NextResponse.redirect(url)
+  // ── ROLE: Admin ──
+  // admin@glrealty.com → /glradmin only
+  if (email === adminEmail) {
+    if (!pathname.startsWith('/glradmin')) return redirect('/glradmin')
+    return supabaseResponse
   }
 
+  // ── ROLE: Broker ──
+  // broker@glrealty.com → all CRM routes, not /glradmin or /agent-dashboard
+  if (email === brokerEmail) {
+    if (pathname.startsWith('/glradmin'))     return redirect('/dashboard')
+    if (pathname.startsWith('/agent-dashboard')) return redirect('/dashboard')
+    return supabaseResponse
+  }
+
+  // ── ROLE: Agent ──
+  // Everyone else → /agent-dashboard only
+  if (!pathname.startsWith('/agent-dashboard')) return redirect('/agent-dashboard')
   return supabaseResponse
 }
 

@@ -31,7 +31,7 @@ export default function GlrAdminPage() {
     setLoading(true)
     const res = await fetch('/api/admin/users')
     if (res.status === 403) {
-      router.push('/dashboard')
+      router.push('/')
       return
     }
     const data = await res.json()

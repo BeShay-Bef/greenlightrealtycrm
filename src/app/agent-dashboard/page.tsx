@@ -9,54 +9,40 @@ import type { Agent } from '@/types'
 export default function AgentDashboardPage() {
   const router = useRouter()
   const [agent, setAgent] = useState<Agent | null>(null)
-  const [userEmail, setUserEmail] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadAgent() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-        return
-      }
-      setUserEmail(user.email ?? '')
-      const { data } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('email', user.email)
-        .single()
+    async function load() {
+      const sb = createClient()
+      const { data: { user } } = await sb.auth.getUser()
+      if (!user) { router.push('/'); return }
+      setEmail(user.email ?? '')
+      const { data } = await sb.from('agents').select('*').eq('email', user.email).single()
       setAgent(data ?? null)
       setLoading(false)
     }
-    loadAgent()
+    load()
   }, [router])
 
   async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    const sb = createClient()
+    await sb.auth.signOut()
     router.push('/')
     router.refresh()
   }
 
-  return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        background: 'linear-gradient(160deg, #1e1f22 0%, #2d2e30 55%, #252627 100%)',
-      }}
-    >
-      {/* Top accent bar */}
-      <div className="h-1 w-full bg-glr-green flex-shrink-0" />
+  const initial = (agent?.name ?? email).charAt(0).toUpperCase()
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-8 py-5 border-b border-white/8">
-        <GlrLogo size={32} color="#8DC63F" textColor="#ffffff" />
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#2d2e30' }}>
+      {/* Top bar */}
+      <div className="h-1 w-full bg-glr-green flex-shrink-0" />
+      <header className="flex items-center justify-between px-8 py-5 border-b border-white/[0.07]">
+        <GlrLogo size={30} color="#8DC63F" textColor="#ffffff" />
         <button
           onClick={handleSignOut}
-          className="text-xs font-heading font-bold text-white/40 hover:text-white/70 transition-colors uppercase tracking-wider"
+          className="text-xs font-heading font-bold text-white/35 hover:text-white/70 uppercase tracking-wider transition-colors"
         >
           Sign Out
         </button>
@@ -65,137 +51,86 @@ export default function AgentDashboardPage() {
       {/* Main */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         {loading ? (
-          <div className="text-white/40 text-sm">Loading…</div>
+          <div className="text-white/30 text-sm font-heading">Loading…</div>
         ) : (
-          <div className="w-full max-w-lg animate-fade-up">
+          <div className="w-full max-w-md animate-fade-up text-center">
 
-            {/* Welcome */}
-            <div className="text-center mb-8">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-heading font-bold text-glr-gray-dark mx-auto mb-4"
-                style={{ background: '#8DC63F' }}
-              >
-                {(agent?.name ?? userEmail).charAt(0).toUpperCase()}
-              </div>
-              <h1 className="font-heading text-2xl font-bold text-white mb-1">
-                Welcome{agent?.name ? `, ${agent.name.split(' ')[0]}` : ''}!
-              </h1>
-              <p className="text-white/40 text-sm">{userEmail}</p>
+            {/* Avatar */}
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 font-heading font-bold text-2xl"
+              style={{ background: '#8DC63F', color: '#2d2e30' }}
+            >
+              {initial}
             </div>
 
+            <h1 className="font-heading font-bold text-white text-2xl mb-1">
+              {agent?.name ? `Hey, ${agent.name.split(' ')[0]}` : 'Agent Portal'}
+            </h1>
+            <p className="text-white/35 text-sm mb-8">{email}</p>
+
             {/* Status card */}
-            {agent && !agent.active ? (
-              <div
-                className="rounded-2xl p-6 text-center mb-5"
-                style={{
-                  background: 'rgba(255,255,255,0.045)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div className="text-3xl mb-3">⏳</div>
-                <h2 className="font-heading font-bold text-white mb-2">
-                  Pending Broker Approval
-                </h2>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  Your account has been created. Your broker will activate your
-                  account and assign access permissions shortly.
-                </p>
-              </div>
-            ) : agent && agent.active ? (
-              <div className="space-y-4">
-                {/* Active status */}
-                <div
-                  className="rounded-2xl p-5 flex items-center gap-4"
-                  style={{
-                    background: 'rgba(141,198,63,0.1)',
-                    border: '1px solid rgba(141,198,63,0.2)',
-                  }}
-                >
-                  <div className="w-10 h-10 rounded-full bg-glr-green flex items-center justify-center text-glr-gray-dark text-lg">
-                    ✓
-                  </div>
-                  <div>
-                    <p className="font-heading font-bold text-glr-green text-sm">
-                      Account Active
-                    </p>
-                    <p className="text-white/50 text-xs mt-0.5">
-                      Your broker has activated your account
-                    </p>
-                  </div>
-                </div>
-
-                {/* Access cards */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Leads', allowed: agent.access_leads, icon: '📋' },
-                    { label: 'Docs', allowed: agent.access_docs, icon: '📄' },
-                    { label: 'Messages', allowed: agent.access_msgs, icon: '💬' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-xl p-4 text-center"
-                      style={{
-                        background: item.allowed
-                          ? 'rgba(141,198,63,0.08)'
-                          : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${
-                          item.allowed
-                            ? 'rgba(141,198,63,0.2)'
-                            : 'rgba(255,255,255,0.06)'
-                        }`,
-                      }}
-                    >
-                      <div className="text-xl mb-1">{item.icon}</div>
-                      <p
-                        className={`text-xs font-heading font-bold ${
-                          item.allowed ? 'text-glr-green' : 'text-white/25'
-                        }`}
-                      >
-                        {item.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Coming soon */}
-                <div
-                  className="rounded-2xl p-5 text-center"
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                  }}
-                >
-                  <p className="text-white/30 text-xs uppercase tracking-widest font-heading font-bold mb-1">
-                    Agent Features
+            <div
+              className="rounded-2xl p-8 text-center"
+              style={{ background: '#1a1b1d', border: '1px solid rgba(141,198,63,0.18)' }}
+            >
+              {!agent ? (
+                <>
+                  <div className="text-4xl mb-4">👋</div>
+                  <h2 className="font-heading font-bold text-white text-lg mb-2">You&apos;re signed in</h2>
+                  <p className="text-white/40 text-sm leading-relaxed">
+                    Contact your broker to be added to the team.
                   </p>
-                  <p className="text-white/50 text-sm">Coming soon</p>
-                </div>
-              </div>
-            ) : (
-              /* No agent record */
-              <div
-                className="rounded-2xl p-6 text-center"
-                style={{
-                  background: 'rgba(255,255,255,0.045)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <div className="text-3xl mb-3">👋</div>
-                <h2 className="font-heading font-bold text-white mb-2">
-                  You&apos;re signed in
-                </h2>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  Contact your broker to be added to the team.
-                </p>
-              </div>
-            )}
+                </>
+              ) : !agent.active ? (
+                <>
+                  <div className="text-4xl mb-4">⏳</div>
+                  <h2 className="font-heading font-bold text-white text-lg mb-2">Pending Approval</h2>
+                  <p className="text-white/40 text-sm leading-relaxed">
+                    Your account is created. Your broker will activate you and assign permissions shortly.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+                    style={{ background: 'rgba(141,198,63,0.12)', border: '1px solid rgba(141,198,63,0.25)' }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-glr-green" />
+                    <span className="text-glr-green text-xs font-heading font-bold uppercase tracking-wider">Active</span>
+                  </div>
+                  <h2 className="font-heading font-bold text-white text-lg mb-4">Agent Portal</h2>
+                  <p className="text-white/30 text-xs font-heading uppercase tracking-widest mb-6">Coming Soon</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Leads', ok: agent.access_leads, icon: '📋' },
+                      { label: 'Docs',  ok: agent.access_docs,  icon: '📄' },
+                      { label: 'Msgs',  ok: agent.access_msgs,  icon: '💬' },
+                    ].map(item => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl py-3 px-2"
+                        style={{
+                          background: item.ok ? 'rgba(141,198,63,0.08)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${item.ok ? 'rgba(141,198,63,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                        }}
+                      >
+                        <div className="text-lg mb-1">{item.icon}</div>
+                        <p className={`text-xs font-heading font-bold ${item.ok ? 'text-glr-green' : 'text-white/20'}`}>
+                          {item.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
           </div>
         )}
       </main>
 
-      {/* Footer */}
       <footer className="py-5 text-center">
-        <p className="text-white/15 text-xs uppercase tracking-widest font-heading">
+        <p className="text-white/12 text-xs font-heading uppercase tracking-widest">
           GreenLight Realty &copy; {new Date().getFullYear()}
         </p>
       </footer>

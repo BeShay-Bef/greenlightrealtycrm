@@ -10,11 +10,11 @@ function adminClient() {
   )
 }
 
-async function assertBroker(): Promise<boolean> {
+async function assertAdmin(): Promise<boolean> {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
-  return user?.email === brokerEmail
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@glrealty.com'
+  return user?.email === adminEmail
 }
 
 // DELETE — delete a user
@@ -22,7 +22,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await assertBroker())) {
+  if (!(await assertAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
@@ -38,7 +38,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await assertBroker())) {
+  if (!(await assertAdmin())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
