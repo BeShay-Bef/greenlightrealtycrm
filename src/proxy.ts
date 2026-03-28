@@ -5,14 +5,21 @@ import type { NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public routes
+  // Public routes — no auth required
   if (
-    pathname.startsWith('/login') ||
+    pathname === '/' ||
     pathname === '/api/sms/webhook' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next()
+  }
+
+  // Redirect legacy /login to /
+  if (pathname.startsWith('/login')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
   let supabaseResponse = NextResponse.next({ request })
@@ -44,8 +51,18 @@ export async function proxy(request: NextRequest) {
 
   if (!user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // /glradmin is restricted to the broker email only
+  if (pathname.startsWith('/glradmin')) {
+    const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
+    if (user.email !== brokerEmail) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
