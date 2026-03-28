@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* GLR Brand Colors */
+@theme {
+  --color-glr-green: #8DC63F;
+  --color-glr-green-dark: #6fa832;
+  --color-glr-green-light: #f0f7e6;
+  --color-glr-green-mid: #c8e6a0;
+  --color-glr-gray: #58595B;
+  --color-glr-gray-dark: #2d2e30;
+  --color-glr-gray-light: #f4f5f1;
+}
+
+/* CSS Variables */
+:root {
+  --background: #f4f5f1;
+  --foreground: #2d2e30;
+  --glr-green: #8DC63F;
+  --glr-green-dark: #6fa832;
+  --glr-green-light: #f0f7e6;
+  --glr-gray: #58595B;
+  --glr-gray-dark: #2d2e30;
+  --glr-gray-light: #f4f5f1;
+}
+
+/* Fade-up animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.4s ease-out forwards;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c8e6a0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8DC63F;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
