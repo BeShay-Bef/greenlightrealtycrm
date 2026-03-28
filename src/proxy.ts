@@ -5,29 +5,17 @@ import type { NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // ── Public routes — no auth required ──
+  // ── Always public ──
   if (
     pathname === '/' ||
-    pathname === '/api/sms/webhook' ||
-    pathname === '/api/admin/check-passcode' ||
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
     return NextResponse.next()
   }
 
-  // API routes — skip role enforcement (individual routes guard themselves)
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.next()
-  }
-
-  // Redirect legacy /login → /
-  if (pathname.startsWith('/login')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
+  // ── Build session-aware Supabase client ──
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -55,42 +43,57 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // ── Unauthenticated → login ──
-  if (!user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
-  const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
-  const adminEmail  = process.env.ADMIN_EMAIL  ?? 'admin@glrealty.com'
-  const email = user.email ?? ''
-
   function redirect(to: string) {
     const url = request.nextUrl.clone()
     url.pathname = to
     return NextResponse.redirect(url)
   }
 
-  // ── ROLE: Admin ──
-  // admin@glrealty.com → /glradmin only
-  if (email === adminEmail) {
-    if (!pathname.startsWith('/glradmin')) return redirect('/glradmin')
+  // Unauthenticated → login
+  if (!user) return redirect('/')
+
+  const email       = user.email ?? ''
+  const brokerEmail = process.env.NEXT_PUBLIC_BROKER_EMAIL ?? 'broker@glrealty.com'
+  const adminEmail  = process.env.NEXT_PUBLIC_ADMIN_EMAIL  ?? 'admin@glrealty.com'
+
+  // ── /glradmin → admin only ──
+  if (pathname.startsWith('/glradmin')) {
+    if (email === adminEmail) return supabaseResponse
+    return redirect('/')
+  }
+
+  // ── CRM routes → broker only ──
+  const crmRoutes = [
+    '/dashboard', '/pipeline', '/agents', '/leads',
+    '/tasks', '/messages', '/documents',
+  ]
+  if (crmRoutes.some(r => pathname.startsWith(r))) {
+    if (email === brokerEmail) return supabaseResponse
+    return redirect('/')
+  }
+
+  // ── /agent-dashboard → must exist in agents table ──
+  if (pathname.startsWith('/agent-dashboard')) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/agents?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+        {
+          headers: {
+            apikey:        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+          },
+          cache: 'no-store',
+        }
+      )
+      const rows: unknown[] = await res.json()
+      if (!Array.isArray(rows) || rows.length === 0) return redirect('/')
+    } catch {
+      return redirect('/')
+    }
     return supabaseResponse
   }
 
-  // ── ROLE: Broker ──
-  // broker@glrealty.com → all CRM routes, not /glradmin or /agent-dashboard
-  if (email === brokerEmail) {
-    if (pathname.startsWith('/glradmin'))     return redirect('/dashboard')
-    if (pathname.startsWith('/agent-dashboard')) return redirect('/dashboard')
-    return supabaseResponse
-  }
-
-  // ── ROLE: Agent ──
-  // Everyone else → /agent-dashboard only
-  if (!pathname.startsWith('/agent-dashboard')) return redirect('/agent-dashboard')
-  return supabaseResponse
+  return redirect('/')
 }
 
 export const config = {
