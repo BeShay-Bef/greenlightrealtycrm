@@ -13,13 +13,16 @@ const inputCls = 'w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder
 const labelCls = 'block text-xs font-heading font-bold text-white/40 uppercase tracking-wider mb-1.5'
 const btnGreen = 'w-full font-heading font-bold py-3 rounded-xl text-sm hover:brightness-110 disabled:opacity-50'
 
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
+
 export default function HomePage() {
 
   // ── Broker ──
-  const [bEmail, setBEmail] = useState('')
-  const [bPass,  setBPass]  = useState('')
-  const [bErr,   setBErr]   = useState('')
-  const [bBusy,  setBBusy]  = useState(false)
+  const [bEmail,   setBEmail]   = useState('')
+  const [bPass,    setBPass]    = useState('')
+  const [bErr,     setBErr]     = useState('')
+  const [bBusy,    setBBusy]    = useState(false)
+  const [bShowPw,  setBShowPw]  = useState(false)
 
   const brokerLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,23 +33,26 @@ export default function HomePage() {
       await supabase.auth.signOut()
       setBErr('Access denied'); setBBusy(false); return
     }
+    await delay(500)
     window.location.href = '/dashboard'
   }
 
   // ── Agent ──
-  const [aMode,  setAMode]  = useState<'in' | 'up'>('in')
-  const [aName,  setAName]  = useState('')
-  const [aPhone, setAPhone] = useState('')
-  const [aEmail, setAEmail] = useState('')
-  const [aPass,  setAPass]  = useState('')
-  const [aErr,   setAErr]   = useState('')
-  const [aBusy,  setABusy]  = useState(false)
+  const [aMode,   setAMode]   = useState<'in' | 'up'>('in')
+  const [aName,   setAName]   = useState('')
+  const [aPhone,  setAPhone]  = useState('')
+  const [aEmail,  setAEmail]  = useState('')
+  const [aPass,   setAPass]   = useState('')
+  const [aErr,    setAErr]    = useState('')
+  const [aBusy,   setABusy]   = useState(false)
+  const [aShowPw, setAShowPw] = useState(false)
 
   const agentLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAErr(''); setABusy(true)
     const { error } = await supabase.auth.signInWithPassword({ email: aEmail, password: aPass })
     if (error) { setAErr('Invalid credentials'); setABusy(false); return }
+    await delay(500)
     window.location.href = '/agent-dashboard'
   }
 
@@ -58,15 +64,17 @@ export default function HomePage() {
     if (data.user) {
       await supabase.from('agents').insert({ name: aName, email: aEmail, phone: aPhone, status: 'active' })
     }
+    await delay(500)
     window.location.href = '/agent-dashboard'
   }
 
   // ── Admin ──
-  const [adOpen,  setAdOpen]  = useState(false)
-  const [adEmail, setAdEmail] = useState('')
-  const [adPass,  setAdPass]  = useState('')
-  const [adErr,   setAdErr]   = useState('')
-  const [adBusy,  setAdBusy]  = useState(false)
+  const [adOpen,   setAdOpen]   = useState(false)
+  const [adEmail,  setAdEmail]  = useState('')
+  const [adPass,   setAdPass]   = useState('')
+  const [adErr,    setAdErr]    = useState('')
+  const [adBusy,   setAdBusy]   = useState(false)
+  const [adShowPw, setAdShowPw] = useState(false)
 
   const adminLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,6 +85,7 @@ export default function HomePage() {
       await supabase.auth.signOut()
       setAdErr('Access denied'); setAdBusy(false); return
     }
+    await delay(500)
     window.location.href = '/glradmin'
   }
 
@@ -121,9 +130,15 @@ export default function HomePage() {
               </div>
               <div>
                 <label className={labelCls}>Password</label>
-                <input type="password" required placeholder="••••••••"
-                  value={bPass} onChange={e => setBPass(e.target.value)}
-                  className={inputCls} style={inp} />
+                <div className="relative">
+                  <input type={bShowPw ? 'text' : 'password'} required placeholder="••••••••"
+                    value={bPass} onChange={e => setBPass(e.target.value)}
+                    className={inputCls + ' pr-14'} style={inp} />
+                  <button type="button" onClick={() => setBShowPw(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-heading font-bold text-glr-green hover:brightness-110">
+                    {bShowPw ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={bBusy} className={btnGreen} style={{ background: '#8DC63F', color: '#2d2e30' }}>
                 {bBusy ? 'Signing in...' : 'Sign In'}
@@ -152,18 +167,23 @@ export default function HomePage() {
                 </div>
                 <div>
                   <label className={labelCls}>Password</label>
-                  <input type="password" required placeholder="••••••••"
-                    value={aPass} onChange={e => setAPass(e.target.value)}
-                    className={inputCls} style={inp} />
+                  <div className="relative">
+                    <input type={aShowPw ? 'text' : 'password'} required placeholder="••••••••"
+                      value={aPass} onChange={e => setAPass(e.target.value)}
+                      className={inputCls + ' pr-14'} style={inp} />
+                    <button type="button" onClick={() => setAShowPw(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-heading font-bold text-glr-green hover:brightness-110">
+                      {aShowPw ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" disabled={aBusy} className={btnGreen} style={{ background: '#8DC63F', color: '#fff' }}>
                   {aBusy ? 'Signing in...' : 'Sign In'}
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   No account?{' '}
-                  <button type="button" onClick={() => { setAMode('up'); setAErr('') }} className="text-glr-green hover:underline">
-                    Create one
-                  </button>
+                  <button type="button" onClick={() => { setAMode('up'); setAErr(''); setAShowPw(false) }}
+                    className="text-glr-green hover:underline">Create one</button>
                 </p>
               </form>
             ) : (
@@ -189,18 +209,23 @@ export default function HomePage() {
                 </div>
                 <div>
                   <label className={labelCls}>Password</label>
-                  <input type="password" required minLength={6} placeholder="••••••••"
-                    value={aPass} onChange={e => setAPass(e.target.value)}
-                    className={inputCls} style={inp} />
+                  <div className="relative">
+                    <input type={aShowPw ? 'text' : 'password'} required minLength={6} placeholder="••••••••"
+                      value={aPass} onChange={e => setAPass(e.target.value)}
+                      className={inputCls + ' pr-14'} style={inp} />
+                    <button type="button" onClick={() => setAShowPw(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-heading font-bold text-glr-green hover:brightness-110">
+                      {aShowPw ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" disabled={aBusy} className={btnGreen} style={{ background: '#8DC63F', color: '#fff' }}>
                   {aBusy ? 'Creating account...' : 'Create Account'}
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   Have an account?{' '}
-                  <button type="button" onClick={() => { setAMode('in'); setAErr('') }} className="text-glr-green hover:underline">
-                    Sign in
-                  </button>
+                  <button type="button" onClick={() => { setAMode('in'); setAErr(''); setAShowPw(false) }}
+                    className="text-glr-green hover:underline">Sign in</button>
                 </p>
               </form>
             )}
@@ -247,15 +272,25 @@ export default function HomePage() {
               </div>
               <div>
                 <label className={labelCls}>Password</label>
-                <input type="password" required placeholder="••••••••"
-                  value={adPass} onChange={e => setAdPass(e.target.value)}
-                  className={inputCls} style={inp} />
+                <div className="relative">
+                  <input type={adShowPw ? 'text' : 'password'} required placeholder="••••••••"
+                    value={adPass} onChange={e => setAdPass(e.target.value)}
+                    className={inputCls + ' pr-14'} style={inp} />
+                  <button type="button" onClick={() => setAdShowPw(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-heading font-bold text-glr-green hover:brightness-110">
+                    {adShowPw ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-2">
-                <button type="submit" disabled={adBusy} className="flex-1 font-heading font-bold py-2.5 rounded-xl text-sm hover:brightness-110 disabled:opacity-50" style={{ background: '#8DC63F', color: '#2d2e30' }}>
+                <button type="submit" disabled={adBusy}
+                  className="flex-1 font-heading font-bold py-2.5 rounded-xl text-sm hover:brightness-110 disabled:opacity-50"
+                  style={{ background: '#8DC63F', color: '#2d2e30' }}>
                   {adBusy ? 'Signing in...' : 'Sign In'}
                 </button>
-                <button type="button" onClick={() => setAdOpen(false)} className="px-4 py-2.5 rounded-xl text-sm text-white/35 hover:text-white/60 font-heading" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                <button type="button" onClick={() => setAdOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm text-white/35 hover:text-white/60 font-heading"
+                  style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                   Cancel
                 </button>
               </div>
