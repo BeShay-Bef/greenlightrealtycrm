@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
   if (
     pathname === '/' ||
     pathname === '/api/sms/webhook' ||
+    pathname === '/api/admin/check-passcode' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
@@ -49,20 +50,32 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Unauthenticated → back to login
   if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  // /glradmin is restricted to the broker email only
-  if (pathname.startsWith('/glradmin')) {
-    const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
-    if (user.email !== brokerEmail) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
+  const brokerEmail = process.env.BROKER_EMAIL ?? 'broker@glrealty.com'
+  const isBroker = user.email === brokerEmail
+
+  // /glradmin is restricted to the broker only
+  if (pathname.startsWith('/glradmin') && !isBroker) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/agent-dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Non-broker users: redirect all broker routes → /agent-dashboard
+  if (
+    !isBroker &&
+    !pathname.startsWith('/agent-dashboard') &&
+    !pathname.startsWith('/api')
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/agent-dashboard'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
