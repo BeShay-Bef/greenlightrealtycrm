@@ -55,15 +55,22 @@ export default function HomePage() {
     setAdErr('')
   }
 
+  // ── Route by email ──
+  function routeByEmail(email: string) {
+    if (email === (process.env.NEXT_PUBLIC_BROKER_EMAIL ?? 'broker@glrealty.com')) return '/dashboard'
+    if (email === (process.env.NEXT_PUBLIC_ADMIN_EMAIL  ?? 'admin@glrealty.com'))  return '/glradmin'
+    return '/agent-dashboard'
+  }
+
   // ── Handlers ──
   async function handleBroker(e: React.FormEvent) {
     e.preventDefault()
     setBErr('')
     setBLoad(true)
     const sb = createClient()
-    const { error } = await sb.auth.signInWithPassword({ email: bEmail, password: bPass })
+    const { data, error } = await sb.auth.signInWithPassword({ email: bEmail, password: bPass })
     if (error) { setBErr(error.message); setBLoad(false) }
-    else { router.push('/dashboard'); router.refresh() }
+    else { router.push(routeByEmail(data.user?.email ?? '')); router.refresh() }
   }
 
   async function handleAgentSignIn(e: React.FormEvent) {
@@ -71,9 +78,9 @@ export default function HomePage() {
     setAErr('')
     setALoad(true)
     const sb = createClient()
-    const { error } = await sb.auth.signInWithPassword({ email: aEmail, password: aPass })
+    const { data, error } = await sb.auth.signInWithPassword({ email: aEmail, password: aPass })
     if (error) { setAErr(error.message); setALoad(false) }
-    else { router.push('/agent-dashboard'); router.refresh() }
+    else { router.push(routeByEmail(data.user?.email ?? '')); router.refresh() }
   }
 
   async function handleAgentSignUp(e: React.FormEvent) {
@@ -100,13 +107,12 @@ export default function HomePage() {
     setAdErr('')
     setAdLoad(true)
     const sb = createClient()
-    const { error } = await sb.auth.signInWithPassword({ email: adEmail, password: adPass })
+    const { data, error } = await sb.auth.signInWithPassword({ email: adEmail, password: adPass })
     if (error) {
       setAdErr(error.message)
       setAdLoad(false)
     } else {
-      // Proxy enforces ADMIN_EMAIL → if wrong account, proxy redirects away from /glradmin
-      router.push('/glradmin')
+      router.push(routeByEmail(data?.user?.email ?? ''))
       router.refresh()
     }
   }
@@ -268,8 +274,8 @@ export default function HomePage() {
 
               <button
                 type="submit" disabled={aLoad}
-                className="w-full font-heading font-bold py-3 rounded-xl text-sm text-white/90 transition-all disabled:opacity-50 hover:brightness-125 mt-1"
-                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)' }}
+                className="w-full font-heading font-bold py-3 rounded-xl text-sm transition-all disabled:opacity-50 hover:brightness-110 mt-1"
+                style={{ background: '#8DC63F', color: '#ffffff' }}
               >
                 {aLoad
                   ? (tab === 'signin' ? 'Signing in…' : 'Creating account…')
