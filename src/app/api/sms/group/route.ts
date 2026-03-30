@@ -3,6 +3,11 @@ import twilio from 'twilio'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
+  const sid = process.env.TWILIO_ACCOUNT_SID
+  if (!sid || sid === 'add_later') {
+    return NextResponse.json({ error: 'SMS is not configured. Add Twilio credentials to enable messaging.' }, { status: 503 })
+  }
+
   try {
     const { body } = await request.json()
 

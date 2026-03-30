@@ -14,6 +14,7 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [sendingGroup, setSendingGroup] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sendError, setSendError] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,7 +47,8 @@ export default function MessagesPage() {
     e.preventDefault()
     if (!selectedAgent || !newMsg.trim()) return
     setSending(true)
-    await fetch('/api/sms/send', {
+    setSendError('')
+    const res = await fetch('/api/sms/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -55,8 +57,13 @@ export default function MessagesPage() {
         agent_id: selectedAgent.id,
       }),
     })
+    if (!res.ok) {
+      const body = await res.json()
+      setSendError(body.error ?? 'Failed to send message')
+      setSending(false)
+      return
+    }
     setNewMsg('')
-    // Re-fetch messages
     const { data } = await supabase
       .from('messages')
       .select('*')
@@ -70,11 +77,16 @@ export default function MessagesPage() {
     e.preventDefault()
     if (!groupMsg.trim()) return
     setSendingGroup(true)
-    await fetch('/api/sms/group', {
+    setSendError('')
+    const res = await fetch('/api/sms/group', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: groupMsg }),
     })
+    if (!res.ok) {
+      const body = await res.json()
+      setSendError(body.error ?? 'Failed to send group message')
+    }
     setGroupMsg('')
     setSendingGroup(false)
   }
@@ -148,7 +160,7 @@ export default function MessagesPage() {
           {!selectedAgent ? (
             <div className="flex-1 flex items-center justify-center text-glr-gray">
               <div className="text-center">
-                <div className="text-5xl mb-3">💬</div>
+                <svg className="w-12 h-12 text-glr-green-mid mx-auto mb-3" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                 <p className="font-medium">Select an agent to view messages</p>
               </div>
             </div>
@@ -198,6 +210,9 @@ export default function MessagesPage() {
 
               {/* Send input */}
               <div className="bg-white border-t border-gray-100 px-6 py-4">
+                {sendError && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{sendError}</p>
+                )}
                 <form onSubmit={sendMessage} className="flex gap-3">
                   <input
                     value={newMsg}
