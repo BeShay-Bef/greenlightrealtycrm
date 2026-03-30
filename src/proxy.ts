@@ -9,7 +9,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Must create response first, then pass request into it so cookies flow correctly
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -31,20 +30,34 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Primary: session from cookies
+  let { data: { user } } = await supabase.auth.getUser()
+
+  // Fallback: token from Authorization header
+  if (!user) {
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      const { data } = await supabase.auth.getUser(token)
+      user = data.user
+    }
+  }
 
   if (!user) return NextResponse.redirect(new URL('/', request.url))
 
+  const brokerEmail = process.env.NEXT_PUBLIC_BROKER_EMAIL ?? 'broker@glrealty.com'
+  const adminEmail  = process.env.NEXT_PUBLIC_ADMIN_EMAIL  ?? 'admin@glrealty.com'
+
   if (pathname.startsWith('/dashboard')) {
-    if (user.email !== 'broker@glrealty.com') return NextResponse.redirect(new URL('/', request.url))
+    if (user.email !== brokerEmail) return NextResponse.redirect(new URL('/', request.url))
   }
 
   if (pathname.startsWith('/glradmin')) {
-    if (user.email !== 'admin@glrealty.com') return NextResponse.redirect(new URL('/', request.url))
+    if (user.email !== adminEmail) return NextResponse.redirect(new URL('/', request.url))
   }
 
   if (pathname.startsWith('/agent-dashboard')) {
-    if (user.email === 'broker@glrealty.com' || user.email === 'admin@glrealty.com') {
+    if (user.email === brokerEmail || user.email === adminEmail) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }

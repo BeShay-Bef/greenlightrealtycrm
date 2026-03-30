@@ -44,14 +44,22 @@ export default function HomePage() {
   const [aEmail,  setAEmail]  = useState('')
   const [aPass,   setAPass]   = useState('')
   const [aErr,    setAErr]    = useState('')
+  const [aInfo,   setAInfo]   = useState('')
   const [aBusy,   setABusy]   = useState(false)
   const [aShowPw, setAShowPw] = useState(false)
 
   const agentLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAErr(''); setABusy(true)
-    const { error } = await supabase.auth.signInWithPassword({ email: aEmail, password: aPass })
+    const { data, error } = await supabase.auth.signInWithPassword({ email: aEmail, password: aPass })
     if (error) { setAErr('Invalid credentials'); setABusy(false); return }
+    // Check approval status
+    const { data: row } = await supabase
+      .from('agents').select('active').eq('email', data.user?.email ?? '').single()
+    if (row && row.active === false) {
+      await supabase.auth.signOut()
+      setAErr('Your account is pending broker approval.'); setABusy(false); return
+    }
     await delay(500)
     window.location.href = '/agent-dashboard'
   }
@@ -62,10 +70,15 @@ export default function HomePage() {
     const { data, error } = await supabase.auth.signUp({ email: aEmail, password: aPass, options: { data: { name: aName, phone: aPhone } } })
     if (error) { setAErr(error.message); setABusy(false); return }
     if (data.user) {
-      await supabase.from('agents').insert({ name: aName, email: aEmail, phone: aPhone, status: 'active' })
+      await supabase.from('agents').insert({
+        name: aName, email: aEmail, phone: aPhone,
+        active: false, access_leads: false, access_docs: false, access_msgs: false,
+      })
     }
-    await delay(500)
-    window.location.href = '/agent-dashboard'
+    setABusy(false)
+    setAMode('in')
+    setAEmail(''); setAPass(''); setAName(''); setAPhone('')
+    setAInfo('Account created! Awaiting broker approval before you can sign in.')
   }
 
   // ── Admin ──
@@ -158,6 +171,7 @@ export default function HomePage() {
 
             {aMode === 'in' ? (
               <form onSubmit={agentLogin} className="px-7 py-6 space-y-4">
+                {aInfo && <p className="text-glr-green text-xs bg-glr-green/10 border border-glr-green/25 px-3 py-2.5 rounded-lg">{aInfo}</p>}
                 {aErr && <p className="text-red-400 text-xs bg-red-900/30 border border-red-500/25 px-3 py-2.5 rounded-lg">{aErr}</p>}
                 <div>
                   <label className={labelCls}>Email</label>
@@ -182,7 +196,7 @@ export default function HomePage() {
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   No account?{' '}
-                  <button type="button" onClick={() => { setAMode('up'); setAErr(''); setAShowPw(false) }}
+                  <button type="button" onClick={() => { setAMode('up'); setAErr(''); setAInfo(''); setAShowPw(false) }}
                     className="text-glr-green hover:underline">Create one</button>
                 </p>
               </form>
@@ -224,7 +238,7 @@ export default function HomePage() {
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   Have an account?{' '}
-                  <button type="button" onClick={() => { setAMode('in'); setAErr(''); setAShowPw(false) }}
+                  <button type="button" onClick={() => { setAMode('in'); setAErr(''); setAInfo(''); setAShowPw(false) }}
                     className="text-glr-green hover:underline">Sign in</button>
                 </p>
               </form>
