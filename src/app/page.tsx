@@ -98,7 +98,7 @@ export default function HomePage() {
       await supabase.auth.signOut()
       setAdErr('Access denied'); setAdBusy(false); return
     }
-    await delay(500)
+    await delay(1000)
     window.location.href = '/glradmin'
   }
 
