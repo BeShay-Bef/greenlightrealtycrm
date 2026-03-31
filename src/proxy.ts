@@ -48,12 +48,14 @@ export async function proxy(request: NextRequest) {
   const brokerEmail = process.env.NEXT_PUBLIC_BROKER_EMAIL ?? 'broker@glrealty.com'
   const adminEmail  = process.env.NEXT_PUBLIC_ADMIN_EMAIL  ?? 'admin@glrealty.com'
 
-  if (pathname.startsWith('/dashboard')) {
-    if (user.email !== brokerEmail) return NextResponse.redirect(new URL('/', request.url))
-  }
-
+  // Admin portal — checked first, returns early
   if (pathname.startsWith('/glradmin')) {
     if (user.email !== adminEmail) return NextResponse.redirect(new URL('/', request.url))
+    return response
+  }
+
+  if (pathname.startsWith('/dashboard')) {
+    if (user.email !== brokerEmail) return NextResponse.redirect(new URL('/', request.url))
   }
 
   if (pathname.startsWith('/agent-dashboard')) {

@@ -33,20 +33,21 @@ export default function HomePage() {
       await supabase.auth.signOut()
       setBErr('Access denied'); setBBusy(false); return
     }
-    await delay(500)
-    window.location.href = '/dashboard'
+    await delay(1000)
+    window.location.replace('/dashboard')
   }
 
   // ── Agent ──
-  const [aMode,   setAMode]   = useState<'in' | 'up'>('in')
-  const [aName,   setAName]   = useState('')
-  const [aPhone,  setAPhone]  = useState('')
-  const [aEmail,  setAEmail]  = useState('')
-  const [aPass,   setAPass]   = useState('')
-  const [aErr,    setAErr]    = useState('')
-  const [aInfo,   setAInfo]   = useState('')
-  const [aBusy,   setABusy]   = useState(false)
-  const [aShowPw, setAShowPw] = useState(false)
+  const [aMode,    setAMode]    = useState<'in' | 'up'>('in')
+  const [aName,    setAName]    = useState('')
+  const [aPhone,   setAPhone]   = useState('')
+  const [aEmail,   setAEmail]   = useState('')
+  const [aPass,    setAPass]    = useState('')
+  const [aErr,     setAErr]     = useState('')
+  const [aInfo,    setAInfo]    = useState('')
+  const [aSuccess, setASuccess] = useState('')
+  const [aBusy,    setABusy]    = useState(false)
+  const [aShowPw,  setAShowPw]  = useState(false)
 
   const agentLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,8 +61,8 @@ export default function HomePage() {
       await supabase.auth.signOut()
       setAErr('Your account is pending broker approval.'); setABusy(false); return
     }
-    await delay(500)
-    window.location.href = '/agent-dashboard'
+    await delay(800)
+    window.location.replace('/agent-dashboard')
   }
 
   const agentSignup = async (e: React.FormEvent) => {
@@ -76,9 +77,8 @@ export default function HomePage() {
       })
     }
     setABusy(false)
-    setAMode('in')
-    setAEmail(''); setAPass(''); setAName(''); setAPhone('')
-    setAInfo('Account created! Awaiting broker approval before you can sign in.')
+    setAErr(''); setAName(''); setAPhone(''); setAEmail(''); setAPass('')
+    setASuccess('Account created. Your broker will approve your access shortly.')
   }
 
   // ── Admin ──
@@ -99,7 +99,7 @@ export default function HomePage() {
       setAdErr('Access denied'); setAdBusy(false); return
     }
     await delay(1000)
-    window.location.href = '/glradmin'
+    window.location.replace('/glradmin')
   }
 
   return (
@@ -196,12 +196,13 @@ export default function HomePage() {
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   No account?{' '}
-                  <button type="button" onClick={() => { setAMode('up'); setAErr(''); setAInfo(''); setAShowPw(false) }}
+                  <button type="button" onClick={() => { setAMode('up'); setAErr(''); setAInfo(''); setASuccess(''); setAShowPw(false) }}
                     className="text-glr-green hover:underline">Create one</button>
                 </p>
               </form>
             ) : (
               <form onSubmit={agentSignup} className="px-7 py-5 space-y-3.5">
+                {aSuccess && <p className="text-glr-green text-xs bg-glr-green/10 border border-glr-green/25 px-3 py-2.5 rounded-lg">{aSuccess}</p>}
                 {aErr && <p className="text-red-400 text-xs bg-red-900/30 border border-red-500/25 px-3 py-2.5 rounded-lg">{aErr}</p>}
                 <div>
                   <label className={labelCls}>Full Name</label>
@@ -238,7 +239,7 @@ export default function HomePage() {
                 </button>
                 <p className="text-center text-white/30 text-xs">
                   Have an account?{' '}
-                  <button type="button" onClick={() => { setAMode('in'); setAErr(''); setAInfo(''); setAShowPw(false) }}
+                  <button type="button" onClick={() => { setAMode('in'); setAErr(''); setAInfo(''); setASuccess(''); setAShowPw(false) }}
                     className="text-glr-green hover:underline">Sign in</button>
                 </p>
               </form>

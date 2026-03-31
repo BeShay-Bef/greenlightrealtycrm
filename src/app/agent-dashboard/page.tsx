@@ -75,7 +75,7 @@ export default function AgentDashboardPage() {
             >
               {!agent ? (
                 <>
-                  <div className="text-4xl mb-4">👋</div>
+                  <svg className="w-10 h-10 text-white/20 mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   <h2 className="font-heading font-bold text-white text-lg mb-2">You&apos;re signed in</h2>
                   <p className="text-white/40 text-sm leading-relaxed">
                     Contact your broker to be added to the team.
@@ -83,10 +83,10 @@ export default function AgentDashboardPage() {
                 </>
               ) : !agent.active ? (
                 <>
-                  <div className="text-4xl mb-4">⏳</div>
+                  <svg className="w-10 h-10 text-amber-400 mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <h2 className="font-heading font-bold text-white text-lg mb-2">Pending Approval</h2>
                   <p className="text-white/40 text-sm leading-relaxed">
-                    Your account is created. Your broker will activate you and assign permissions shortly.
+                    Your broker will grant access shortly.
                   </p>
                 </>
               ) : (
@@ -102,9 +102,9 @@ export default function AgentDashboardPage() {
                   <p className="text-white/30 text-xs font-heading uppercase tracking-widest mb-6">Coming Soon</p>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: 'Leads', ok: agent.access_leads, icon: '📋' },
-                      { label: 'Docs',  ok: agent.access_docs,  icon: '📄' },
-                      { label: 'Msgs',  ok: agent.access_msgs,  icon: '💬' },
+                      { label: 'Leads', ok: agent.access_leads },
+                      { label: 'Docs',  ok: agent.access_docs },
+                      { label: 'Msgs',  ok: agent.access_msgs },
                     ].map(item => (
                       <div
                         key={item.label}
@@ -114,7 +114,6 @@ export default function AgentDashboardPage() {
                           border: `1px solid ${item.ok ? 'rgba(141,198,63,0.2)' : 'rgba(255,255,255,0.06)'}`,
                         }}
                       >
-                        <div className="text-lg mb-1">{item.icon}</div>
                         <p className={`text-xs font-heading font-bold ${item.ok ? 'text-glr-green' : 'text-white/20'}`}>
                           {item.label}
                         </p>
