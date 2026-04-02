@@ -13,7 +13,7 @@ function adminClient() {
 async function assertAdmin(): Promise<boolean> {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@glrealty.com'
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? 'admin@glrealty.com'
   return user?.email === adminEmail
 }
 

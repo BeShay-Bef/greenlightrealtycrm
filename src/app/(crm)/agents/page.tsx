@@ -46,6 +46,13 @@ export default function AgentsPage() {
   async function handleReject(agent: Agent) {
     if (!confirm(`Reject and delete ${agent.name}? This cannot be undone.`)) return
     setActing(agent.id)
+    // Delete auth user first
+    const usersRes = await fetch('/api/admin/users')
+    if (usersRes.ok) {
+      const { users } = await usersRes.json()
+      const authUser = users.find((u: { id: string; email: string }) => u.email === agent.email)
+      if (authUser) await fetch(`/api/admin/users/${authUser.id}`, { method: 'DELETE' })
+    }
     await supabase.from('agents').delete().eq('id', agent.id)
     await fetchAgents()
     setActing(null)
